@@ -106,11 +106,11 @@
 
   // Produce a duplicate-free version of the array.
   _.uniq = function (array) {
-    var res, storage = [], {};
+    var res = [], storage = {};
     _.each(array, function(item) {
       storage[item] = item;
     });
-    
+
     _each(array, function(item) {
       res.push(item);
     });
