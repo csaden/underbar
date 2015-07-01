@@ -106,16 +106,32 @@
 
   // Produce a duplicate-free version of the array.
   _.uniq = function (array) {
-    var res = [], storage = {};
-    _.each(array, function(item) {
-      storage[item] = item;
+
+    // original solution that I wrote
+    var results = [];
+
+    _.each(array, function(item){
+      if (_.indexOf(results, item) === -1) {
+        results.push(item);
+      }
     });
 
-    _each(array, function(item) {
-      res.push(item);
-    });
-    return res;
+    return results;
   };
+
+    // BETTER solution with less calls to _.indexOf
+
+    //   var res = [], storage = {};
+
+    //   _.each(array, function(item) {
+    //     storage[item] = item;
+    //   });
+
+    //   _each(storage, function(item) {
+    //     res.push(item);
+    //   });
+    //   return res;
+    // };
 
 
   // Return the results of applying an iterator to each element.
@@ -169,15 +185,17 @@
   //   }); // should be 5, regardless of the iterator function passed in
   //          No accumulator is given so the first element is used.
   _.reduce = function (collection, iterator, accumulator) {
-    if (accumulator === undefined) {
-      accumulator = collection[0];
-      collection = collection.slice(1);
-    }
-    var res = accumulator;
+    var initialized = arguments.length === 3;
+
     _.each(collection, function (item) {
-      res = iterator(res, item);
+      if (!initialized) {
+        accumulator = item;
+        initialized = true;
+      } else {
+        accumulator = iterator(accumulator, item);
+      }
     });
-    return res;
+    return accumulator;
   };
 
   // Determine if the array or object contains a given value (using `===`).
@@ -207,6 +225,17 @@
 
     return _.reduce(collection, isFalsy, true);
   };
+  // ALTERNATE SOLUTION - use the AND syntax
+  // _.every = function(collection, iterator) {
+  //   iterator = iterator || _.identity;
+
+  //   return !!_.reduce(collection, function(trueSoFar, value) {
+  //     return trueSoFar && iterator(value);
+  //     //do I need !! before the iterator(value)?
+  //   }, true);
+  // };
+
+
 
   // Determine whether any of the elements pass a truth test. If no iterator is
   // provided, provide a default one
@@ -217,6 +246,13 @@
       return !iterator(elem);
     }));
   };
+
+  // ALTERNATE SOLUTION - use the OR synax
+  // _.some = function(collection, iterator) {
+  //   return !!_.reduce(collection, function(trueSoFar, value) {
+  //     return trueSoFar || iterator(trueSoFar, value);
+  //   }, false);
+  // };
 
 
   /**
@@ -323,15 +359,11 @@
   // parameter. For example _.delay(someFunction, 500, 'a', 'b') will
   // call someFunction('a', 'b') after 500ms
   _.delay = function (func, wait) {
-    var args = Array.prototype.slice.call(arguments);
-    if (args.length > 2) {
-      args = args.slice(2);
-      setTimeout(func.apply(this, args), wait);
-    } else {
-      setTimeout(func, wait);
-    }
+    var args = Array.prototype.slice.call(arguments, 2);
+    return setTimeout(function() {
+      func.apply(this, args);
+    }, wait);
   };
-
 
   /**
    * ADVANCED COLLECTION OPERATIONS
@@ -385,9 +417,15 @@
   // an array of people by their name.
   _.sortBy = function (collection, iterator) {
     if (typeof iterator === 'string') {
+      collection.sort(function(a, b) {
+        return a[iterator] - b[iterator];
+      });
     } else {
-      return collection.sort(iterator);
+      collection.sort(function(a, b) {
+        return iterator(a) - iterator(b);
+      });
     }
+    return collection;
   };
 
   // Zip together two or more arrays with elements of the same index
@@ -417,16 +455,61 @@
   // Hint: Use Array.isArray to check if something is an array
   _.flatten = function (nestedArray) {
 
+    var res = [];
+
+    var flattenArray = function(array) {
+      _.each(array, function(value) {
+        if (Array.isArray(value)) {
+          flattenArray(value);
+        } else {
+        res.push(value);
+        }
+      });
+    };
+
+    _.each(nestedArray, function(value) {
+      if (!Array.isArray(value)) {
+        res.push(value);
+      } else {
+        flattenArray(value);
+      }
+    });
+    return res;
   };
 
   // Takes an arbitrary number of arrays and produces an array that contains
   // every item shared between all the passed-in arrays.
   _.intersection = function () {
+    var args = Array.prototype.slice.call(arguments),
+        counts = {},
+        res = [],
+        key;
+    _.each(args, function(arr) {
+      _.each(arr, function(value) {
+        if(counts[value]) {
+          counts[value] += 1;
+        } else {
+          counts[value] = 1;
+        }
+      });
+    });
+
+    for(key in counts) {
+      if (counts[key] === arguments.length) {
+        res.push(key);
+      }
+    }
+    return res;
   };
 
   // Take the difference between one array and a number of other arrays.
   // Only the elements present in just the first array will remain.
   _.difference = function (array) {
+    var args = _.flatten(Array.prototype.slice.call(arguments, 1)),
+        res = Array.prototype.slice.call(arguments[0]);
+    return _.filter(res, function(value) {
+      return !_.contains(args, value);
+    });
   };
 
   // Returns a function, that, when invoked, will only be triggered at most once
@@ -435,5 +518,9 @@
   //
   // Note: This is difficult! It may take a while to implement.
   _.throttle = function (func, wait) {
+    var called = false;
+    return function() {
+
+    };
   };
 }());
